@@ -76,6 +76,9 @@ class Response(BaseModel):
     additional_kwargs: Optional[Dict] = {}
     """Optional dictionary of additional keyword arguments"""
 
+    context:Optional[str] = ""
+    """context passed to LLM"""
+
 
 class Filter(BaseModel):
     """

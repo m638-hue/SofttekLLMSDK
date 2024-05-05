@@ -266,6 +266,7 @@ class DocumentChatBot(Chatbot):
         include_context: bool,
         top_documents: int,
         logging_kwargs: Dict | None = None,
+        context_in_response: bool = False 
     ) -> Response:
         """This method is used to call the model and returns a Response object.
 
@@ -319,6 +320,8 @@ class DocumentChatBot(Chatbot):
             )
         )
 
+        if context_in_response : response.context = context
+
         # * Update original memory
         self.memory.add_message(**response.message.model_dump())
 
@@ -364,6 +367,7 @@ class DocumentChatBot(Chatbot):
         top_documents: int = 5,
         cache_kwargs: Dict = {},
         logging_kwargs: Dict | None = None,
+        context_in_response: bool = False
     ) -> Response:
         """Chatbot function that returns a response given a prompt. If a memory and/or cache are available, it considers previously stored conversations. Filters are applied to the prompt before processing to ensure it is valid.
 
@@ -399,7 +403,7 @@ class DocumentChatBot(Chatbot):
         self.memory.add_message(role="user", content=prompt)
         if not self.cache:
             last_message = self.__call_model(
-                include_context, top_documents, logging_kwargs
+                include_context, top_documents, logging_kwargs, context_in_response=context_in_response
             )
         else:
             if self._random_boolean():
@@ -416,12 +420,12 @@ class DocumentChatBot(Chatbot):
                     last_message = cached_response
                 else:
                     last_message = self.__call_model(
-                        include_context, top_documents, logging_kwargs
+                        include_context, top_documents, logging_kwargs, context_in_response=context_in_response
                     )
                     self.cache.add(prompt=prompt, response=last_message, **cache_kwargs)
             else:
                 last_message = self.__call_model(
-                    include_context, top_documents, logging_kwargs
+                    include_context, top_documents, logging_kwargs, context_in_response=context_in_response
                 )
 
         return last_message
