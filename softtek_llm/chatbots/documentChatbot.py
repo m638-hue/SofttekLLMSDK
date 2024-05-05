@@ -329,6 +329,32 @@ class DocumentChatBot(Chatbot):
 
         return response
 
+    def get_context(self, prompt, top_documents = 5):
+        # * Embed prompt
+        embeddings = self.embeddings_model.embed(prompt)
+        vector = Vector(embeddings=embeddings)
+
+        # * Get similar vectors
+        similar_vectors = self.knowledge_base.search(
+            vector=vector,
+            namespace=self.knowledge_base_namespace,
+            top_k=top_documents,
+        )
+
+        # * Extract context
+        all_sources = [vector.metadata["source"] for vector in similar_vectors]
+        if all_sources:
+            sources = []
+            for source in all_sources:
+                if source not in sources:
+                    sources.append(source)
+        else:
+            raise KnowledgeBaseEmpty("The knowledge base is empty")
+
+        context = "\n".join([vector.metadata["text"] for vector in similar_vectors])
+
+        return (sources, context)
+
     @override
     def chat(
         self,
