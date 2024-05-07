@@ -722,7 +722,7 @@ class FAISSVectorStore(VectorStore):
                 index_blob = bucket.blob(f"{path}/{'index.pkl' if namespace_ is None else 'index_' + namespace_ + '.pkl'}")
                 index_blob.upload_from_string(pickled_index, "application/octet-stream")
 
-                pickled_local_id = pickle.dumps(self.__local_id_[namespace_])
+                pickled_local_id = pickle.dumps(self.__local_id[namespace_])
                 local_id_blob = bucket.blob(f"{path}/{'local_id.pkl' if namespace_ is None else 'local_id_' + namespace_ + '.pkl'}")
                 local_id_blob.upload_from_string(pickled_local_id, "application/octet-stream")
 
@@ -735,7 +735,7 @@ class FAISSVectorStore(VectorStore):
             index_blob = bucket.blob(f"{path}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
             index_blob.upload_from_string(pickled_index, "application/octet-stream")
 
-            pickled_local_id = pickle.dumps(self.__local_id_[namespace])
+            pickled_local_id = pickle.dumps(self.__local_id[namespace])
             local_id_blob = bucket.blob(f"{path}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
             local_id_blob.upload_from_string(pickled_local_id, "application/octet-stream")
 
