@@ -709,16 +709,21 @@ class FAISSVectorStore(VectorStore):
         """
         bucket = storage.bucket()
 
+        if file_path == "":
+            path = f"files/{uid}/documents/{file_id}"
+        else :
+            path = f"files/{uid}/documents/{file_path}/{file_id}" 
+
         if save_all:
             for namespace_ in self.__index.keys():
 
                 chunk = serialize_index(self.__index[namespace_])
                 pickled_index = pickle.dumps(chunk)
-                index_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'index.pkl' if namespace_ is None else 'index_' + namespace_ + '.pkl'}")
+                index_blob = bucket.blob(f"{path}/{'index.pkl' if namespace_ is None else 'index_' + namespace_ + '.pkl'}")
                 index_blob.upload_from_string(pickled_index, "application/octet-stream")
 
                 pickled_local_id = pickle.dumps(self.__local_id_[namespace_])
-                local_id_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'local_id.pkl' if namespace_ is None else 'local_id_' + namespace_ + '.pkl'}")
+                local_id_blob = bucket.blob(f"{path}/{'local_id.pkl' if namespace_ is None else 'local_id_' + namespace_ + '.pkl'}")
                 local_id_blob.upload_from_string(pickled_local_id, "application/octet-stream")
 
         else:
@@ -727,12 +732,11 @@ class FAISSVectorStore(VectorStore):
 
             chunk = serialize_index(self.__index[namespace])
             pickled_index = pickle.dumps(chunk)
-            pickled_local_id = pickle.dumps(self.__local_id_[namespace])
-
-            index_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
+            index_blob = bucket.blob(f"{path}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
             index_blob.upload_from_string(pickled_index, "application/octet-stream")
 
-            local_id_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
+            pickled_local_id = pickle.dumps(self.__local_id_[namespace])
+            local_id_blob = bucket.blob(f"{path}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
             local_id_blob.upload_from_string(pickled_local_id, "application/octet-stream")
 
     @classmethod
@@ -740,9 +744,8 @@ class FAISSVectorStore(VectorStore):
         cls,
         uid: str,
         file_id: str,
-        namespaces: List[str | None],
+        namespaces: List[str | None] = [None],
         file_path: str = "",
-        dir_path: str = ".",
         d: int = 1536,
     ):
         """
@@ -763,16 +766,21 @@ class FAISSVectorStore(VectorStore):
             If a namespace raises an error, it will be passed.
         """
         bucket = storage.bucket()
-
+        
         local_id_: Dict[str | None, List[Vector]] = dict()
         index_: Dict[str | None, Any] = dict()
 
+        if file_path == "":
+            path = f"files/{uid}/documents/{file_id}"
+        else :
+            path = f"files/{uid}/documents/{file_path}/{file_id}" 
+
         for namespace in namespaces:
             try:
-                index_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
+                index_blob = bucket.blob(f"{path}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
                 index = deserialize_index(pickle.loads(index_blob.download_as_bytes()))
 
-                local_id_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
+                local_id_blob = bucket.blob(f"{path}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
                 ids = pickle.loads(local_id_blob.download_as_bytes())
 
                 index_[namespace] = index
