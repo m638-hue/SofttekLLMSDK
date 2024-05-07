@@ -12,7 +12,7 @@ from typing import Any, Dict, List
 import numpy as np
 import pinecone
 import requests
-from faiss import IndexFlatIP, normalize_L2, read_index, write_index
+from faiss import IndexFlatIP, normalize_L2, read_index, write_index, serialize_index, deserialize_index
 from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
 from supabase import create_client
 from typing_extensions import override
@@ -685,7 +685,9 @@ class FAISSVectorStore(VectorStore):
     
     def save_firebase_storage(
         self,
-        dir_path: str = ".",
+        uid: str,
+        file_id: str,
+        file_path: str = "",
         namespace: str | None = None,
         save_all: bool = False,
     ):
@@ -705,52 +707,41 @@ class FAISSVectorStore(VectorStore):
         Note:
             You must provide either `namespace` or `save_all`. If both are given `save_all` has the priority.
         """
-        path = Path(dir_path)
-        path.mkdir(exist_ok=True, parents=True)
+        bucket = storage.bucket()
 
         if save_all:
             for namespace_ in self.__index.keys():
-                write_index(
-                    self.__index[namespace_],
-                    os.path.join(
-                        path,
-                        f"{'index' if namespace_ is None else namespace_ + '_index'}.faiss",
-                    ),
-                )
 
-                with open(
-                    os.path.join(
-                        path,
-                        f"{'index' if namespace_ is None else namespace_ + '_index'}.pkl",
-                    ),
-                    "wb",
-                ) as f:
-                    pickle.dump(self.__local_id[namespace_], f)
+                chunk = serialize_index(self.__index[namespace_])
+                pickled_index = pickle.dumps(chunk)
+                index_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'index.pkl' if namespace_ is None else 'index_' + namespace_ + '.pkl'}")
+                index_blob.upload_from_string(pickled_index, "application/octet-stream")
+
+                pickled_local_id = pickle.dumps(self.__local_id_[namespace_])
+                local_id_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'local_id.pkl' if namespace_ is None else 'local_id_' + namespace_ + '.pkl'}")
+                local_id_blob.upload_from_string(pickled_local_id, "application/octet-stream")
+
         else:
             if namespace not in self.__local_id.keys():
                 raise ValueError(f"The namespace `{namespace}` does not exist.")
 
-            write_index(
-                self.__index[namespace],
-                os.path.join(
-                    path,
-                    f"{'index' if namespace is None else namespace_ + '_index'}.faiss",
-                ),
-            )
+            chunk = serialize_index(self.__index[namespace])
+            pickled_index = pickle.dumps(chunk)
+            pickled_local_id = pickle.dumps(self.__local_id_[namespace])
 
-            with open(
-                os.path.join(
-                    path,
-                    f"{'index' if namespace is None else namespace + '_index'}.pkl",
-                ),
-                "wb",
-            ) as f:
-                pickle.dump(self.__local_id[namespace], f)
+            index_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
+            index_blob.upload_from_string(pickled_index, "application/octet-stream")
+
+            local_id_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
+            local_id_blob.upload_from_string(pickled_local_id, "application/octet-stream")
 
     @classmethod
     def load_firebase_storage(
         cls,
+        uid: str,
+        file_id: str,
         namespaces: List[str | None],
+        file_path: str = "",
         dir_path: str = ".",
         d: int = 1536,
     ):
@@ -771,29 +762,18 @@ class FAISSVectorStore(VectorStore):
             Only if both the `.faiss` and `.pkl` files are found, the namespace is stored.
             If a namespace raises an error, it will be passed.
         """
-        path = Path(dir_path)
-
-        if not os.path.isdir(path):
-            raise ValueError(f"The given directory does not exist: {dir_path}.")
+        bucket = storage.bucket()
 
         local_id_: Dict[str | None, List[Vector]] = dict()
         index_: Dict[str | None, Any] = dict()
 
         for namespace in namespaces:
             try:
-                index = read_index(
-                    str(
-                        path
-                        / f"{'index' if namespace is None else namespace + '_index'}.faiss"
-                    )
-                )
+                index_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'index.pkl' if namespace is None else 'index_' + namespace + '.pkl'}")
+                index = deserialize_index(pickle.loads(index_blob.download_as_bytes()))
 
-                with open(
-                    path
-                    / f"{'index' if namespace is None else namespace + '_index'}.pkl",
-                    "rb",
-                ) as f:
-                    ids = pickle.load(f)
+                local_id_blob = bucket.blob(f"files/{uid}/documents/{file_path}/{file_id}/{'local_id.pkl' if namespace is None else 'local_id_' + namespace + '.pkl'}")
+                ids = pickle.loads(local_id_blob.download_as_bytes())
 
                 index_[namespace] = index
                 local_id_[namespace] = ids
