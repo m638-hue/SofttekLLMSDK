@@ -16,6 +16,8 @@ from faiss import IndexFlatIP, normalize_L2, read_index, write_index
 from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
 from supabase import create_client
 from typing_extensions import override
+import firebase_admin
+from firebase_admin import storage
 
 from softtek_llm.schemas import Vector
 
@@ -266,6 +268,7 @@ class FAISSVectorStore(VectorStore):
         index: Dict[str | None, Any] = None,
         d: int = 1536,
     ):
+        print(firebase_admin._apps)
         """
         Initialize a FAISSVectorStore object to manage vectors in a FAISS index.
 
@@ -621,6 +624,131 @@ class FAISSVectorStore(VectorStore):
 
     @classmethod
     def load_local(
+        cls,
+        namespaces: List[str | None],
+        dir_path: str = ".",
+        d: int = 1536,
+    ):
+        """
+        Creates a FAISSVectorStore from a list of `namespaces` stored in the `dir_path`.
+
+        Args:
+            `namespaces` (List[str | None]): The namespaces that will be retrieved.
+            `dir_path` (str, optional): The path to which all the files will be retrieved. The default is the current directory.
+            `d` (int, optional): The dimension of the Vector embeddings to be stored. Must coincide with the embeddings model used. The default is 1536.
+
+        Raises:
+            ValueError: if the given directory does not exist.
+            ValueError: if something goes wrong with the files.
+
+        Note:
+            If you want to load the default index, include `None` in the list.
+            Only if both the `.faiss` and `.pkl` files are found, the namespace is stored.
+            If a namespace raises an error, it will be passed.
+        """
+        path = Path(dir_path)
+
+        if not os.path.isdir(path):
+            raise ValueError(f"The given directory does not exist: {dir_path}.")
+
+        local_id_: Dict[str | None, List[Vector]] = dict()
+        index_: Dict[str | None, Any] = dict()
+
+        for namespace in namespaces:
+            try:
+                index = read_index(
+                    str(
+                        path
+                        / f"{'index' if namespace is None else namespace + '_index'}.faiss"
+                    )
+                )
+
+                with open(
+                    path
+                    / f"{'index' if namespace is None else namespace + '_index'}.pkl",
+                    "rb",
+                ) as f:
+                    ids = pickle.load(f)
+
+                index_[namespace] = index
+                local_id_[namespace] = ids
+            except Exception as e:
+                raise RuntimeError(
+                    f"Something wrong happend with the file(s) for the namespace `{namespace}`"
+                )
+
+        if None not in index_.keys():
+            index_[None] = []
+            local_id_[None] = IndexFlatIP(d)
+
+        return cls(local_id_, index_)
+    
+    def save_firebase_storage(
+        self,
+        dir_path: str = ".",
+        namespace: str | None = None,
+        save_all: bool = False,
+    ):
+        """
+        Saves both the index and the local_id objects from the given namespace or from all the namespaces.
+        If `folder_path` is not provided, it is stored in the current directory.
+        If the folder does not exist, it is created.
+
+        Args:
+            `dir_path` (str, optional): The path to which all the files will be saved. The default is the current directory.
+            `namespace` (str | None, optional): The namespace that will be saved. The default is `None`.
+            `save_all` (bool, optional): If set to `True`, all the namespaces will be saved. The default is `False`.
+
+        Raises:
+            ValueError: if the namespace does not exist.
+
+        Note:
+            You must provide either `namespace` or `save_all`. If both are given `save_all` has the priority.
+        """
+        path = Path(dir_path)
+        path.mkdir(exist_ok=True, parents=True)
+
+        if save_all:
+            for namespace_ in self.__index.keys():
+                write_index(
+                    self.__index[namespace_],
+                    os.path.join(
+                        path,
+                        f"{'index' if namespace_ is None else namespace_ + '_index'}.faiss",
+                    ),
+                )
+
+                with open(
+                    os.path.join(
+                        path,
+                        f"{'index' if namespace_ is None else namespace_ + '_index'}.pkl",
+                    ),
+                    "wb",
+                ) as f:
+                    pickle.dump(self.__local_id[namespace_], f)
+        else:
+            if namespace not in self.__local_id.keys():
+                raise ValueError(f"The namespace `{namespace}` does not exist.")
+
+            write_index(
+                self.__index[namespace],
+                os.path.join(
+                    path,
+                    f"{'index' if namespace is None else namespace_ + '_index'}.faiss",
+                ),
+            )
+
+            with open(
+                os.path.join(
+                    path,
+                    f"{'index' if namespace is None else namespace + '_index'}.pkl",
+                ),
+                "wb",
+            ) as f:
+                pickle.dump(self.__local_id[namespace], f)
+
+    @classmethod
+    def load_firebase_storage(
         cls,
         namespaces: List[str | None],
         dir_path: str = ".",
