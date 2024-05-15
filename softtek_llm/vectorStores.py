@@ -101,7 +101,7 @@ class PineconeVectorStore(VectorStore):
 
     @override
     def __init__(
-        self, api_key: str, environment: str, index_name: str, proxy: str | None = None
+        self, api_key: str, environment: str, index_name: str, project_name: str, proxy: str | None = None
     ):
         """
         Initialize a PineconeVectorStore object for managing vectors in a Pinecone index.
@@ -116,13 +116,17 @@ class PineconeVectorStore(VectorStore):
             Make sure to use a valid API key and specify the desired environment and index name.
         """
         if proxy is None:
-            pinecone.init(api_key=api_key, environment=environment)
+            pinecone.init(api_key=api_key, environment=environment, project_name=project_name)
         else:
             openapi_config = OpenApiConfiguration.get_default_copy()
             openapi_config.proxy = proxy
             pinecone.init(
                 api_key=api_key, environment=environment, openapi_config=openapi_config
             )
+
+        if index_name not in pinecone.list_indexes():
+            pinecone.create_index(index_name, 1536)
+
         self.__index = pinecone.Index(index_name)
 
     @override
