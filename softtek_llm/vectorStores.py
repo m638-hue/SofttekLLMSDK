@@ -117,7 +117,7 @@ class PineconeVectorStore(VectorStore):
         self.__pc = Pinecone(api_key=api_key)
 
         if index_name not in self.__pc.list_indexes().names():
-            self.__pc.create_index(index_name, 1536)
+            self.__pc.create_index(index_name, 1536, ServerlessSpec)
 
         self.__index = self.__pc.Index(index_name)
 
