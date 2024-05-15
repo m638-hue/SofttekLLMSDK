@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-import pinecone
+from pinecone import Pinecone, ServerlessSpec
 import requests
 from faiss import IndexFlatIP, normalize_L2, read_index, write_index, serialize_index, deserialize_index
 from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
@@ -101,8 +101,7 @@ class PineconeVectorStore(VectorStore):
 
     @override
     def __init__(
-        self, api_key: str, environment: str, index_name: str, project_name: str, proxy: str | None = None
-    ):
+        self, api_key: str, index_name: str):
         """
         Initialize a PineconeVectorStore object for managing vectors in a Pinecone index.
 
@@ -115,19 +114,12 @@ class PineconeVectorStore(VectorStore):
         Note:
             Make sure to use a valid API key and specify the desired environment and index name.
         """
-        if proxy is None:
-            pinecone.init(api_key=api_key, environment=environment, project_name=project_name)
-        else:
-            openapi_config = OpenApiConfiguration.get_default_copy()
-            openapi_config.proxy = proxy
-            pinecone.init(
-                api_key=api_key, environment=environment, openapi_config=openapi_config
-            )
+        self.__pc = Pinecone(api_key=api_key)
 
-        if index_name not in pinecone.list_indexes():
-            pinecone.create_index(index_name, 1536)
+        if index_name not in self.__pc.list_indexes().names():
+            self.__pc.create_index(index_name, 1536)
 
-        self.__index = pinecone.Index(index_name)
+        self.__index = self.__pc.Index(index_name)
 
     @override
     def add(
