@@ -247,7 +247,7 @@ class OpenAIModel(LLMModel):
 
         try:
             answer = self.client.chat.completions.create(
-                deployment_id=self.model_name,
+                model=self.model_name,
                 messages=messages,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
