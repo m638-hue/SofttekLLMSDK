@@ -2,7 +2,7 @@ import os
 import unittest
 
 from softtek_llm.chatbots.chatbot import Chatbot, Filter, InvalidPrompt
-from softtek_llm.models import OpenAI
+from softtek_llm.models import OpenAIModel
 
 
 class TestChatbot(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestChatbot(unittest.TestCase):
         raise ValueError("OPENAI_CHAT_MODEL_NAME environment variable must be set.")
 
     def setUp(self):
-        self.model = OpenAI(
+        self.model = OpenAIModel(
             api_key=self.api_key,
             model_name=self.model_name,
             api_type="azure",

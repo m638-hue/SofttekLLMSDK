@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Literal
 
 import openai
 import requests
-from openai.error import InvalidRequestError
+from openai import OpenAI
 from typing_extensions import override
 
 from softtek_llm.exceptions import TokensExceeded
@@ -93,7 +93,7 @@ class LLMModel(ABC):
         raise NotImplementedError("parse_filters method must be overriden")
 
 
-class OpenAI(LLMModel):
+class OpenAIModel(LLMModel):
     """
     # OpenAI
     Creates an OpenAI language model. This class is a subclass of the LLMModel abstract base class.
@@ -122,6 +122,7 @@ class OpenAI(LLMModel):
         presence_penalty: float = 0,
         frequency_penalty: float = 0,
         verbose: bool = False,
+        project: str = ""
     ):
         """Initializes the OpenAI LLM Model class.
 
@@ -145,16 +146,11 @@ class OpenAI(LLMModel):
         self.temperature = temperature
         self.presence_penalty = presence_penalty
         self.frequency_penalty = frequency_penalty
-        openai.api_key = api_key
-        if api_type is not None:
-            openai.api_type = api_type
-            match api_type:
-                case "azure":
-                    setup_azure(api_base, api_version)
-                case _:
-                    raise ValueError(
-                        f"api_type must be either 'azure' or None, not {api_type}"
-                    )
+        self.client = OpenAI(
+            api_key=api_key,
+            project=project,
+        )
+        
 
     @property
     def max_tokens(self) -> int | None:
@@ -251,7 +247,7 @@ class OpenAI(LLMModel):
 
         try:
             answer = OpenAIChatResponse(
-                **openai.ChatCompletion.create(
+                **self.client.chat.completions.create(
                     deployment_id=self.model_name,
                     messages=messages,
                     temperature=self.temperature,
@@ -260,7 +256,7 @@ class OpenAI(LLMModel):
                     frequency_penalty=self.frequency_penalty,
                 )
             )
-        except InvalidRequestError as e:
+        except Exception as e:
             if "maximum context length" in str(e).lower():
                 raise TokensExceeded(
                     f"Tokens exceeded for model '{self.model_name}'. If you're using the max_tokens parameter, try increasing it. Otherwise, you may consider:\n- Upgrading to a different model\n- Reducing the messages stored in memory (for example, by using a WindowMemory)\n- Applying some strategy for data reduction (for example, text summarization)"

@@ -4,7 +4,7 @@ import unittest
 from openai.error import InvalidRequestError
 
 from softtek_llm.memory import Memory
-from softtek_llm.models import OpenAI, SofttekOpenAI
+from softtek_llm.models import OpenAIModel, SofttekOpenAI
 from softtek_llm.schemas import Message, Response
 
 
@@ -23,7 +23,7 @@ class TestOpenAI(unittest.TestCase):
         with self.assertRaises(
             ValueError, msg="api_type must be either 'azure' or None, not notazure"
         ):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key, model_name=self.model_name, api_type="notazure"
             )
 
@@ -31,7 +31,7 @@ class TestOpenAI(unittest.TestCase):
         api_type = "azure"
 
         with self.assertRaises(ValueError, msg="api_base must be set for Azure API"):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -41,7 +41,7 @@ class TestOpenAI(unittest.TestCase):
         api_type = "azure"
 
         with self.assertRaises(TypeError, msg="max_tokens must be an integer or None"):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -51,7 +51,7 @@ class TestOpenAI(unittest.TestCase):
     def test_good_max_tokens(self):
         api_type = "azure"
 
-        openai = OpenAI(
+        openai = OpenAIModel(
             api_key=self.api_key,
             model_name=self.model_name,
             api_type=api_type,
@@ -68,7 +68,7 @@ class TestOpenAI(unittest.TestCase):
         api_type = "azure"
 
         with self.assertRaises(TypeError, msg="temperature must be a float"):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -76,7 +76,7 @@ class TestOpenAI(unittest.TestCase):
             )
 
         with self.assertRaises(ValueError, msg="temperature must be between 0 and 2"):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -87,7 +87,7 @@ class TestOpenAI(unittest.TestCase):
         api_type = "azure"
 
         with self.assertRaises(TypeError, msg="presence_penalty must be a float"):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -97,7 +97,7 @@ class TestOpenAI(unittest.TestCase):
         with self.assertRaises(
             ValueError, msg="presence_penalty must be between -2 and 2"
         ):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -108,7 +108,7 @@ class TestOpenAI(unittest.TestCase):
         api_type = "azure"
 
         with self.assertRaises(TypeError, msg="frequency_penalty must be a float"):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -118,7 +118,7 @@ class TestOpenAI(unittest.TestCase):
         with self.assertRaises(
             ValueError, msg="frequency_penalty must be between -2 and 2"
         ):
-            OpenAI(
+            OpenAIModel(
                 api_key=self.api_key,
                 model_name=self.model_name,
                 api_type=api_type,
@@ -130,7 +130,7 @@ class TestOpenAI(unittest.TestCase):
         memory = Memory()
         memory.add_message("user", "Hello!")
 
-        chat_model = OpenAI(
+        chat_model = OpenAIModel(
             api_key=self.api_key,
             model_name=self.model_name,
             api_type=api_type,
@@ -145,7 +145,7 @@ class TestOpenAI(unittest.TestCase):
         memory.add_message("user", "Hello!")
         self.api_key = "wrong_api_key"
 
-        chat_model = OpenAI(
+        chat_model = OpenAIModel(
             api_key=self.api_key,
             model_name=self.model_name,
         )
