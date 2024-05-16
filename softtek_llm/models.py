@@ -246,15 +246,13 @@ class OpenAIModel(LLMModel):
             print(f"Memory: {messages}")
 
         try:
-            answer = OpenAIChatResponse(
-                **self.client.chat.completions.create(
-                    deployment_id=self.model_name,
-                    messages=messages,
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                    presence_penalty=self.presence_penalty,
-                    frequency_penalty=self.frequency_penalty,
-                )
+            answer = self.client.chat.completions.create(
+                deployment_id=self.model_name,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                presence_penalty=self.presence_penalty,
+                frequency_penalty=self.frequency_penalty,
             )
         except Exception as e:
             if "maximum context length" in str(e).lower():
@@ -271,8 +269,7 @@ class OpenAIModel(LLMModel):
             created=answer.created,
             latency=(perf_counter_ns() - start) // 1e6,
             from_cache=False,
-            model=answer.model,
-            usage=answer.usage,
+            model=answer.model
         )
 
         memory.add_message(resp.message.role, resp.message.content)
