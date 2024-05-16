@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Literal
 
 import openai
+from openai import OpenAI
 import requests
 from typing_extensions import override
 
@@ -61,6 +62,7 @@ class OpenAIEmbeddings(EmbeddingsModel):
         self,
         api_key: str,
         model_name: str,
+        project:str,
         api_type: Literal["azure"] | None = None,
         api_base: str | None = None,
         api_version: str = "2023-07-01-preview",
@@ -78,18 +80,12 @@ class OpenAIEmbeddings(EmbeddingsModel):
             (ValueError): When api_type is not "azure" or None.
         """
         super().__init__()
-        openai.api_key = api_key
         self.__model_name = model_name
 
-        if api_type is not None:
-            openai.api_type = api_type
-            match api_type:
-                case "azure":
-                    setup_azure(api_base, api_version)
-                case _:
-                    raise ValueError(
-                        f"api_type must be either 'azure' or None, not {api_type}"
-                    )
+        self.client = OpenAI(
+            api_key=api_key,
+            project=project
+        )
 
     @property
     def model_name(self) -> str:
@@ -106,12 +102,12 @@ class OpenAIEmbeddings(EmbeddingsModel):
         Returns:
             (List[float]): Embedding of the prompt as a list of floats.
         """
-        response = openai.Embedding.create(
-            deployment_id=self.model_name,
+        response = self.client.embeddings.create(
             input=prompt,
+            model=self.model_name,
+            encoding_format="float"
         )
-        return response["data"][0]["embedding"]
-
+        return response.data[0].embedding
 
 class SofttekOpenAIEmbeddings(EmbeddingsModel):
     """
