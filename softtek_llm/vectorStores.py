@@ -239,6 +239,10 @@ class PineconeVectorStore(VectorStore):
         namespaces = self.__index.describe_index_stats().namespaces
         return namespace in namespaces
     
+    @property
+    def index(self):
+        return self.__index
+    
 
 class FAISSVectorStore(VectorStore):
     """
