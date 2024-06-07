@@ -146,7 +146,7 @@ class PineconeVectorStore(VectorStore):
         if "metadata" in kwargs:
             metadata:Dict = kwargs["metadata"]
         else:
-            metadata:Dict
+            metadata:Dict = {}
 
         data_to_add = []
         ids = {}
