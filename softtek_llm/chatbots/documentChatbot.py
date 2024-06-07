@@ -67,8 +67,8 @@ class DocumentChatBot(Chatbot):
         cache: Cache | None = None,
         cache_probability: float = 0.5,
         verbose: bool = False,
-        knowledge_base_namespace: str | None = None,
-    ):
+        knowledge_base_namespace: str | None = None
+        ):
         """Chatbot that uses a knowledge base to answer questions. The knowledge base is a vector store that contains the documents. The embeddings model is used to embed the documents and the prompt. The model is used to generate the response.
 
         Args:
@@ -222,6 +222,7 @@ class DocumentChatBot(Chatbot):
         file: str | bytes,
         file_type: Literal["pdf", "doc", "docx", "txt", "csv"],
         document_name: str | None = None,
+        **kwargs
     ):
         """Adds a document to the knowledge base.
 
@@ -234,7 +235,7 @@ class DocumentChatBot(Chatbot):
             file, file_type, document_name
         )
         vectors = self.__get_vectors(file_type, file_path, document_name)
-        self.knowledge_base.add(vectors, namespace=self.knowledge_base_namespace)
+        self.knowledge_base.add(vectors, namespace=self.knowledge_base_namespace, **kwargs)
 
     def delete_document(
         self,

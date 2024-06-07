@@ -142,6 +142,12 @@ class PineconeVectorStore(VectorStore):
         Raises:
             ValueError: If any of the vectors do not have a unique ID.
         """
+
+        if "metadata" in kwargs:
+            metadata:Dict = kwargs["metadata"]
+        else:
+            metadata:Dict
+
         data_to_add = []
         ids = {}
         for vector in vectors:
@@ -151,7 +157,7 @@ class PineconeVectorStore(VectorStore):
                 raise ValueError(
                     f"Vector ID {vector.id} is not unique to this batch. Please make sure all vectors have unique IDs."
                 )
-            data_to_add.append((vector.id, vector.embeddings, vector.metadata))
+            data_to_add.append((vector.id, vector.embeddings, {**metadata, **vector.metadata}))
             ids[vector.id] = 1
 
         self.__index.upsert(
