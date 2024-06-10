@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec, Index
 import requests
 from faiss import IndexFlatIP, normalize_L2, read_index, write_index, serialize_index, deserialize_index
 from pinecone.core.client.configuration import Configuration as OpenApiConfiguration
@@ -81,7 +81,11 @@ class VectorStore(ABC):
             NotImplementedError: If the search method is not overridden.
         """
         raise NotImplementedError("search method must be overridden")
-
+    
+    @property
+    @abstractmethod
+    def index() -> Index:
+        ...
 
 class PineconeVectorStore(VectorStore):
     """
